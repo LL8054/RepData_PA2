@@ -44,17 +44,25 @@ head(data[,1:7])
 ## 6       1 11/15/1951 0:00:00     2000       CST     77 LAUDERDALE    AL
 ```
 
+###Processing the Data###
+
 From the 7 columns we just saw it's evident there will be unnecessary columns we can pare from a refined dataset.  But before we manipulate the data we need to load the necessary packages.  Note, if you haven't downloaded one or more of these packages you can by running the following code.
 
 ```r
+install.packages('plyr')
 install.packages('dplyr')
 install.packages('lubridate')
+install.packages('tidyr')
+install.packages('ggplot2')
 ```
 
 
 ```r
+library(plyr)
 library(dplyr)
 library(lubridate)
+library(tidyr)
+library(ggplot2)
 ```
 
 Using the National Weather Service [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf) and the National Climatic Data Center Storm Events [FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf) as guides, the columns needed to analyze the data for the questions presented are selected to a refined dataframe called **'pData'**. The columns selected are <font color=orange>BGN_DATE</font> (date of event), <font color=orange>EVTYPE</font> (event type), <font color=orange>FATALITIES</font> (# of fatalities), <font color=orange>INJURIES</font> (# of injuries), <font color=orange>PROPDMG</font> (dollar amount of property damage), <font color=orange>PROPDMGEXP</font> (exponent for PROPDMG in thousands(K), millions(M), or billions(B)+), <font color=orange>CROPDMG</font> (dollar amount of property damage), and <font color=orange>CROPDMGEXP</font> (exponent for CROPDMG in thousands(K), millions(M), or billions(B)+). <br>
@@ -177,10 +185,20 @@ a <- grepl("tornado|wind|hail|rain|winter weather|storm|flood|hurricane|dust|col
 pData <- pData[a,]
 ```
 
-Now to answer the question of which events are most harmful with respect to population health (as measured by the columns 'FATALITIES' and 'INJURIES') we create a new dataframe *(pDataPop)* that subsets for only those rows that have at least 1 fatality or at least 1 injury.  
+To analyze which events are most harmful with respect to population health (as measured by the columns 'FATALITIES' and 'INJURIES') we create a new dataframe *(pDataPop)* that subsets for only those rows that have at least 1 fatality or at least 1 injury. We then keep only the relevant columns and gather the data so it's organized specifically to evaluate the specific harmfulness of each type of event. Specifically, the INJURIES and FATALITIES columns are combined under a CASUALTY column with factors of INJURIES or FATALITIES. 
 
 ```r
 pDataPop <- subset(pData, FATALITIES < 1 | INJURIES < 1)
+pDataPop <- pDataPop[,c("EVTYPE", "FATALITIES", "INJURIES")]
+```
+
+This then sums the number of types of casualties (injuries vs fatalities) for each weather event.
+
+```r
+pDataPop <- tbl_df(pDataPop)
+by_EVTYPE <- group_by(pDataPop, EVTYPE)
+Pop <- summarize(by_EVTYPE, FATALITIES=sum(FATALITIES), INJURIES=sum(INJURIES))
+Pop <- gather(Pop, Casualty, Count, -EVTYPE)
 ```
 
 Next, in order to analyze which events have the greatest economic consequences, we create a dataframefor those rows that have a value of 'K', 'k', 'M', 'm', 'B', or 'b' in either the PROPDMGEXP column or CROPDMGEXP column.  Any rows that don't have those values in one of those columns are irrelevant since they don't contain dollar damage amounts, or the amounts are not at least $1,000 at which point they are negligible for the purposes of this analysis.  
@@ -190,6 +208,64 @@ Next, in order to analyze which events have the greatest economic consequences, 
 pDataEcon <- subset(pData, PROPDMGEXP == "K" | PROPDMGEXP == "k" | PROPDMGEXP == "M" | PROPDMGEXP == "m" | PROPDMGEXP == "B" | PROPDMGEXP == "b" | CROPDMGEXP == "K" | CROPDMGEXP == "k" | CROPDMGEXP == "M" | CROPDMGEXP == "m" | CROPDMGEXP == "B" | CROPDMGEXP == "b")
 ```
 
+Now we add columns that multiply the PROPDMG and PROPDMGEXP columns and the CROPDMG and CROPDMGEXP columns respectively to get dollar amounts for each event. Note:  Powers adjusted per 1000.   
+
+```r
+#replacing PROPDMGEXP variables with numbers according to their power, per 1000
+#replacing 'K' or 'k' with 1
+a <- grep("K|k", pDataEcon$PROPDMGEXP, ignore.case=TRUE)
+pDataEcon[a,6] <- "1"
+
+#replacing 'M' or 'm' with 1000
+a <- grep("M|m", pDataEcon$PROPDMGEXP, ignore.case=TRUE)
+pDataEcon[a,6] <- "1000"
+
+#replacing 'B' or 'b' with 1000000
+a <- grep("B|b", pDataEcon$PROPDMGEXP, ignore.case=TRUE)
+pDataEcon[a,6] <- "1000000"
+
+#coercing PROPDMGEXP to integers
+pDataEcon$PROPDMGEXP <- as.integer(pDataEcon$PROPDMGEXP)
+
+#creating new column that multiplies PROPDMG and PROPDMGEXP called PROPTOTAL
+pDataEcon$PROPTOTAL <- pDataEcon$PROPDMG * pDataEcon$PROPDMGEXP
+
+#replacing CROPDMGEXP variables with numbers according to their power, per 1000
+#replacing 'K' or 'k' with 1
+a <- grep("K|k", pDataEcon$CROPDMGEXP, ignore.case=TRUE)
+pDataEcon[a,8] <- "1"
+
+#replacing 'M' or 'm' with 1000
+a <- grep("M|m", pDataEcon$CROPDMGEXP, ignore.case=TRUE)
+pDataEcon[a,8] <- "1000"
+
+#replacing 'B' or 'b' with 1000000
+a <- grep("B|b", pDataEcon$CROPDMGEXP, ignore.case=TRUE)
+pDataEcon[a,8] <- "1000000"
+
+#coercing CROPDMGEXP to integers
+pDataEcon$CROPDMGEXP <- as.integer(pDataEcon$CROPDMGEXP)
+```
+
+```
+## Warning: NAs introduced by coercion
+```
+
+```r
+#creating new column that multiplies CROPDMG and CROPDMGEXP called CROPTOTAL
+pDataEcon$CROPTOTAL <- pDataEcon$CROPDMG * pDataEcon$CROPDMGEXP
+```
+
+###Analyzing the Data###
+
+Let's build a chart to see which types of events are most harmful with respect to population health.
+
+```r
+plot <- ggplot(Pop, aes(EVTYPE, Count)) + geom_bar(stat="identity", aes(fill=Casualty)) + labs(title = "Casualties for Major Weather Events in the U.S., 1950 - 2011", x = "Event Type", y = "# Casualties") + labs(color = "Type of Casualty") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(plot)
+```
+
+![plot of chunk unnamed-chunk-14](./PA2_files/figure-html/unnamed-chunk-14.png) 
 
 ###<font color=blue>Results</font>
 

@@ -45,11 +45,11 @@ install.packages('ggplot2')
 ```
 
 ```{r message=FALSE, warning=FALSE}
+library(plyr)
 library(dplyr)
 library(lubridate)
 library(tidyr)
 library(ggplot2)
-library(plyr)
 ```
 
 Using the National Weather Service [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf) and the National Climatic Data Center Storm Events [FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf) as guides, the columns needed to analyze the data for the questions presented are selected to a refined dataframe called **'pData'**. The columns selected are <font color=orange>BGN_DATE</font> (date of event), <font color=orange>EVTYPE</font> (event type), <font color=orange>FATALITIES</font> (# of fatalities), <font color=orange>INJURIES</font> (# of injuries), <font color=orange>PROPDMG</font> (dollar amount of property damage), <font color=orange>PROPDMGEXP</font> (exponent for PROPDMG in thousands(K), millions(M), or billions(B)+), <font color=orange>CROPDMG</font> (dollar amount of property damage), and <font color=orange>CROPDMGEXP</font> (exponent for CROPDMG in thousands(K), millions(M), or billions(B)+). <br>
@@ -179,20 +179,20 @@ Next, in order to analyze which events have the greatest economic consequences, 
 pDataEcon <- subset(pData, PROPDMGEXP == "K" | PROPDMGEXP == "k" | PROPDMGEXP == "M" | PROPDMGEXP == "m" | PROPDMGEXP == "B" | PROPDMGEXP == "b" | CROPDMGEXP == "K" | CROPDMGEXP == "k" | CROPDMGEXP == "M" | CROPDMGEXP == "m" | CROPDMGEXP == "B" | CROPDMGEXP == "b")
 ```
 
-Now we add columns that multiply the PROPDMG and PROPDMGEXP columns and the CROPDMG and CROPDMGEXP columns respectively to get dollar amounts for each event.  
+Now we add columns that multiply the PROPDMG and PROPDMGEXP columns and the CROPDMG and CROPDMGEXP columns respectively to get dollar amounts for each event. Note:  Powers adjusted per 1000.   
 ```{r}
-#replacing PROPDMGEXP variables with numbers according to their power 
-#replacing 'K' or 'k' with 1000
+#replacing PROPDMGEXP variables with numbers according to their power, per 1000
+#replacing 'K' or 'k' with 1
 a <- grep("K|k", pDataEcon$PROPDMGEXP, ignore.case=TRUE)
+pDataEcon[a,6] <- "1"
+
+#replacing 'M' or 'm' with 1000
+a <- grep("M|m", pDataEcon$PROPDMGEXP, ignore.case=TRUE)
 pDataEcon[a,6] <- "1000"
 
-#replacing 'M' or 'm' with 1000000
-a <- grep("M|m", pDataEcon$PROPDMGEXP, ignore.case=TRUE)
-pDataEcon[a,6] <- "1000000"
-
-#replacing 'B' or 'b' with 1000000000
+#replacing 'B' or 'b' with 1000000
 a <- grep("B|b", pDataEcon$PROPDMGEXP, ignore.case=TRUE)
-pDataEcon[a,6] <- "1000000000"
+pDataEcon[a,6] <- "1000000"
 
 #coercing PROPDMGEXP to integers
 pDataEcon$PROPDMGEXP <- as.integer(pDataEcon$PROPDMGEXP)
@@ -200,18 +200,18 @@ pDataEcon$PROPDMGEXP <- as.integer(pDataEcon$PROPDMGEXP)
 #creating new column that multiplies PROPDMG and PROPDMGEXP called PROPTOTAL
 pDataEcon$PROPTOTAL <- pDataEcon$PROPDMG * pDataEcon$PROPDMGEXP
 
-#replacing CROPDMGEXP variables with numbers according to their power 
-#replacing 'K' or 'k' with 1000
+#replacing CROPDMGEXP variables with numbers according to their power, per 1000
+#replacing 'K' or 'k' with 1
 a <- grep("K|k", pDataEcon$CROPDMGEXP, ignore.case=TRUE)
+pDataEcon[a,8] <- "1"
+
+#replacing 'M' or 'm' with 1000
+a <- grep("M|m", pDataEcon$CROPDMGEXP, ignore.case=TRUE)
 pDataEcon[a,8] <- "1000"
 
-#replacing 'M' or 'm' with 1000000
-a <- grep("M|m", pDataEcon$CROPDMGEXP, ignore.case=TRUE)
-pDataEcon[a,8] <- "1000000"
-
-#replacing 'B' or 'b' with 1000000000
+#replacing 'B' or 'b' with 1000000
 a <- grep("B|b", pDataEcon$CROPDMGEXP, ignore.case=TRUE)
-pDataEcon[a,8] <- "1000000000"
+pDataEcon[a,8] <- "1000000"
 
 #coercing CROPDMGEXP to integers
 pDataEcon$CROPDMGEXP <- as.integer(pDataEcon$CROPDMGEXP)
@@ -224,8 +224,7 @@ pDataEcon$CROPTOTAL <- pDataEcon$CROPDMG * pDataEcon$CROPDMGEXP
 
 Let's build a chart to see which types of events are most harmful with respect to population health.
 ```{r}
-plot <- qplot(Pop$EVTYPE, Pop$Count, color = Pop$Casualty, stat="identity") + geom_bar() + labs(title = 
-    "Casualties for Major Weather Events in the U.S., 1950 - 2011", x = "Event Type", y = "# Casualties") + labs(color = "Type of Casualty")
+plot <- ggplot(Pop, aes(EVTYPE, Count)) + geom_bar(stat="identity", aes(fill=Casualty)) + labs(title = "Casualties for Major Weather Events in the U.S., 1950 - 2011", x = "Event Type", y = "# Casualties") + labs(color = "Type of Casualty") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 print(plot)
 ```
 
