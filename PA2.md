@@ -1,11 +1,21 @@
-# Reproducible Research- Peer Assessment 2: A Study of Severe Weather Events and Their Negative Consequences
+---
+title: "Reproducible Research- Peer Assessment 2: A Study of Severe Weather Events and Their Negative Consequences"
+output: 
+  html_document:
+    keep_md: true
+---
 
 ##<font color=blue>Synopsis</font>###
-Synopsis: Immediately after the title, there should be a synopsis which describes and summarizes your analysis in at most 10 complete sentences.
+Severe weather events often happen without warning and are traumatic-  they wreak havoc and destroy property and lives.  Officials need to know where to efficiently mobilize limited resources to assist with protective actions and cleanup efforts.  This analysis, while making no suggestions, takes a dataset compiled across the U.S. from 1950 - 2011 and aims to answer two questions related to damages caused by these events:
+
+1.) Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+2.) Across the United States, which types of events have the greatest economic consequences?
+
+From this analysis, we find the most expensive storm events in terms of population health (fatalities and injuries) were tornadoes and high wind events.  The storm events that caused the greatest economic consequences were floods and hurricanes.  
 
 
 ##<font color=blue>Data Processing</font>
-There should be a section titled Data Processing which describes (in words and code) how the data were loaded into R and processed for analysis. In particular, your analysis must start from the raw CSV file containing the data. You cannot do any preprocessing outside the document. If preprocessing is time-consuming you may consider using the cache = TRUE option for certain code chunks.
 
 ###Obtaining the Data###
 
@@ -305,7 +315,7 @@ Econ <- summarize(by_EVTYPE, PROP=sum(PROPTOTAL, na.rm=TRUE), CROP=sum(CROPTOTAL
 Econ <- gather(Econ, Type, Dollars, -EVTYPE)
 ```
 
-###Analyzing the Data###
+##<font color=blue>Analyzing the Data</font>
 
 Let's build a barplot to see which types of events are most harmful with respect to population health.
 
@@ -314,7 +324,7 @@ plot <- ggplot(Pop, aes(EVTYPE, Count)) + geom_bar(stat="identity", aes(fill=Cas
 print(plot)
 ```
 
-![plot of chunk unnamed-chunk-17](./PA2_files/figure-html/unnamed-chunk-17.png) 
+![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17.png) 
 
 Now let's take a look at a barplot to see which weather events are the most harmful in terms of property and crop damage in dollar amounts. 
 
@@ -323,9 +333,25 @@ plot <- ggplot(Econ, aes(EVTYPE, Dollars)) + geom_bar(stat="identity", aes(fill=
 print(plot)
 ```
 
-![plot of chunk unnamed-chunk-18](./PA2_files/figure-html/unnamed-chunk-18.png) 
+![plot of chunk unnamed-chunk-18](figure/unnamed-chunk-18.png) 
 
 
-###<font color=blue>Results</font>
+##<font color=blue>Results</font>
+This analysis endeavors to answer two questions:
+1.) Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
 
-    
+2.) Across the United States, which types of events have the greatest economic consequences?
+
+**QUESTION 1**
+From 1950 - 2011 the highest amount of Total Casualties (Fatalities + Injuries) were suffered from tornadic events (~32,000).  The second highest amount of Total Casualties was also attributable to high winds (~11,000), but the amount of casualties for that event was less than 35% of tornadic casualties.  Rounding out the top 6 events in order for Total Casualties were floods (3rd most at ~7,000), extreme heat (~5,000), lightning (~5,000), and winter weather (~3,000).  
+
+In terms of Injuries, the top 6 descending from most Injuries first reads the same as Total Casualties, except for lightning and extreme heat swapping places in the order. 
+
+In terms of Fatalities, the top 6 descending from most Fatalities first reads as such:  extreme heat (~2,500), floods (~1,200), high winds (~1,000), surf (~600), lightning, (~500), and tornadoes (~400).   
+
+**QUESTION 2**
+From 1950 - 2011 the highest amount of Total Damages (Property + Crop) were suffered from floods (slightly less than $180 billion, not adjusted for inflation).  Second through sixth on the list, in order, are hurricanes (~$90 billion), tornadoes (~$59 billion), storms (~$57 billion), winter weather (~$19 billion), and high winds (~$18.2 billion).
+
+In terms of Property Damage amounts, the top six are floods (~$167 billion), hurricanes (~$85 billion), tornadoes (~$58 billion), storms (~$56 billion), high winds (~$16.1 billion), and hail (~$16 billion).
+
+In terms of Crop Damage amounts, the top six are dry and drought conditions (~$14 billion), floods (~$~12 billion), winter weather (~$6.5 billion), hurricanes (~$5.5 billion), hail (~$3 billion), and high winds (~$2 billion). 
