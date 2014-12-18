@@ -256,16 +256,75 @@ pDataEcon$CROPDMGEXP <- as.integer(pDataEcon$CROPDMGEXP)
 pDataEcon$CROPTOTAL <- pDataEcon$CROPDMG * pDataEcon$CROPDMGEXP
 ```
 
+Checking to see the new columns look right.
+
+```r
+head(pDataEcon)
+```
+
+```
+##   YEAR  EVTYPE FATALITIES INJURIES PROPDMG PROPDMGEXP CROPDMG CROPDMGEXP
+## 1 1950 TORNADO          0       15    25.0          1       0         NA
+## 2 1950 TORNADO          0        0     2.5          1       0         NA
+## 3 1951 TORNADO          0        2    25.0          1       0         NA
+## 4 1951 TORNADO          0        2     2.5          1       0         NA
+## 5 1951 TORNADO          0        2     2.5          1       0         NA
+## 6 1951 TORNADO          0        6     2.5          1       0         NA
+##   PROPTOTAL CROPTOTAL
+## 1      25.0        NA
+## 2       2.5        NA
+## 3      25.0        NA
+## 4       2.5        NA
+## 5       2.5        NA
+## 6       2.5        NA
+```
+
+Now we subset pDataEcon into a dataframe called Econ that contains just the columns we need to assess which event types cause the most economic damage.  The columns we'll need are EVTYPE, PROPTOTAL (dollar amount of total property damage, per $1000), and CROPTOTAL (dollar amount of total crop damage, per $1000)
+
+```r
+Econ <- pDataEcon[,c("EVTYPE", "PROPTOTAL", "CROPTOTAL")]
+head(Econ)
+```
+
+```
+##    EVTYPE PROPTOTAL CROPTOTAL
+## 1 TORNADO      25.0        NA
+## 2 TORNADO       2.5        NA
+## 3 TORNADO      25.0        NA
+## 4 TORNADO       2.5        NA
+## 5 TORNADO       2.5        NA
+## 6 TORNADO       2.5        NA
+```
+
+This then sums the damage amounts in dollars per 1000 (crops vs properties) for each weather event.
+
+```r
+Econ <- tbl_df(Econ)
+by_EVTYPE <- group_by(Econ, EVTYPE)
+Econ <- summarize(by_EVTYPE, PROP=sum(PROPTOTAL, na.rm=TRUE), CROP=sum(CROPTOTAL, na.rm=TRUE))
+Econ <- gather(Econ, Type, Dollars, -EVTYPE)
+```
+
 ###Analyzing the Data###
 
-Let's build a chart to see which types of events are most harmful with respect to population health.
+Let's build a barplot to see which types of events are most harmful with respect to population health.
 
 ```r
 plot <- ggplot(Pop, aes(EVTYPE, Count)) + geom_bar(stat="identity", aes(fill=Casualty)) + labs(title = "Casualties for Major Weather Events in the U.S., 1950 - 2011", x = "Event Type", y = "# Casualties") + labs(color = "Type of Casualty") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 print(plot)
 ```
 
-![plot of chunk unnamed-chunk-14](./PA2_files/figure-html/unnamed-chunk-14.png) 
+![plot of chunk unnamed-chunk-17](./PA2_files/figure-html/unnamed-chunk-17.png) 
+
+Now let's take a look at a barplot to see which weather events are the most harmful in terms of property and crop damage in dollar amounts. 
+
+```r
+plot <- ggplot(Econ, aes(EVTYPE, Dollars)) + geom_bar(stat="identity", aes(fill=Type)) + labs(title = "Property and Crop Damages- Major Weather Events, USA 1950 - 2011", x = "Event Type", y = "$ Damages, per $1000") + labs(color = "Type of Damage") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(plot)
+```
+
+![plot of chunk unnamed-chunk-18](./PA2_files/figure-html/unnamed-chunk-18.png) 
+
 
 ###<font color=blue>Results</font>
 
